@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10100f">
+<title>تفاصيل المنتج | Eltwenz Store</title>
+<link rel="stylesheet" href="/product.css"><link rel="stylesheet" href="/order.css">
+<style>
+.account-link{font-size:12px;color:#e4c475;white-space:nowrap}
+.product-gallery{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.product-gallery[hidden]{display:none!important}.product-gallery button{width:64px;height:64px;padding:3px;border:1px solid #6d5935;border-radius:10px;background:#211f19;cursor:pointer}.product-gallery button[aria-current="true"]{border-color:#e0bb68;box-shadow:0 0 0 1px #e0bb68}.product-gallery img{width:100%;height:100%;object-fit:contain;background:#fff;border-radius:7px}
+.recommendations{margin:30px 0 10px}.recommendations[hidden]{display:none!important}.recommendations-head{display:flex;justify-content:space-between;align-items:end;gap:14px;margin-bottom:14px}.recommendations-head h2{font-size:23px;margin:5px 0 0;color:#f4ead4}.recommendations-head>a{font-size:13px;color:#e4c475}.recommendation-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.recommendation-card{overflow:hidden;border:1px solid #51452f;border-radius:16px;background:linear-gradient(145deg,#211f19,#171613);box-shadow:0 10px 25px #0005;transition:transform .2s,border-color .2s}.recommendation-card:hover{transform:translateY(-3px);border-color:#b58c46}.recommendation-photo{height:180px;display:grid;place-items:center;background:radial-gradient(circle at 50% 48%,#59472b,#302819 62%,#201e18);color:#efd486;font-size:34px}.recommendation-photo img{width:100%;height:100%;object-fit:contain;background:#fff}.recommendation-info{display:grid;gap:7px;padding:12px}.recommendation-name{color:#f2e5c7;font-size:14px;font-weight:700;line-height:1.6}.recommendation-name:hover{color:#efd486}.recommendation-price{color:#efd283;font-size:13px;font-weight:700}.recommendation-info del{color:#a99e86;font-size:11px}.recommendation-info .ask-price-link{width:max-content;font-size:12px}@media(max-width:700px){.recommendation-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.recommendation-photo{height:145px}.recommendations-head h2{font-size:19px}}
+</style>
+</head>
+<body>
+<header class="product-header"><a class="back-link" href="/#products">← رجوع للمنتجات</a><a class="brand" href="/"><img class="brand-logo" src="/products/logo.jpg" alt="">Eltwenz Store</a><a class="account-link" href="/account">حسابي</a><button class="cart" id="cartOpen" type="button">سلة الطلب <b id="count">0</b></button></header>
+<main class="detail-wrap"><nav class="crumb"><a href="/">الرئيسية</a><span> / </span><a href="/#products">المنتجات</a><span> / </span><span id="crumbName">تفاصيل المنتج</span></nav>
+<p id="loading" class="notice-text">بنحمّل تفاصيل المنتج...</p><section id="notFound" class="detail-card" hidden><h1>المنتج مش متاح حاليًا</h1><p>ارجع لقائمة المنتجات واختار منتج تاني.</p><a class="back-button" href="/#products">الرجوع للمتجر</a></section>
+<article id="productDetail" class="detail-card product" hidden><div><div class="detail-photo"><img id="productImage" alt=""><span id="productBadge" class="badge"></span></div><div id="productGallery" class="product-gallery" hidden aria-label="صور المنتج"></div></div><section class="detail-copy"><span id="productCategory" class="category-label"></span><h1 id="productName"></h1><p id="productDescription" class="description"></p><div id="productPrice" class="detail-price"></div><p id="productStock" class="stock-state"></p><label class="quantity-label">الكمية<input id="productQuantity" name="quantity" type="number" min="1" max="20" value="1" inputmode="numeric"></label><div class="detail-actions"><button class="add" type="button">أضف للسلة</button><button class="add buy-now" data-buy-now="true" type="button">اطلب المنتج الآن</button></div></section></article>
+<section id="recommendations" class="recommendations" hidden aria-labelledby="recommendationsTitle"><div class="recommendations-head"><div><span class="category-label">من نفس القسم</span><h2 id="recommendationsTitle">من نفس القسم</h2></div><a href="/#products">كل المنتجات ←</a></div><div id="recommendationGrid" class="recommendation-grid"></div></section>
+</main>
+<script src="/checkout.js"></script><script src="/product.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "eltwenz-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Eltwenz Store storefront and admin server",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

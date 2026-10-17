@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+*.log
+*.zip
+tools/
+data/*
+!data/products.json
+!data/shipping-rates.json

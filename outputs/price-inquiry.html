@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10100f">
+<title>اسأل عن السعر | Eltwenz Store</title>
+<link rel="stylesheet" href="/price-inquiry.css">
+</head>
+<body>
+<header class="inquiry-header"><a href="/#products">← رجوع للمنتجات</a><a href="/" class="brand">Eltwenz Store</a></header>
+<main class="inquiry-wrap">
+  <p id="loading" class="muted">بنحمّل بيانات المنتج...</p>
+  <section id="notFound" class="inquiry-card" hidden><h1>المنتج مش متاح حاليًا</h1><a class="gold-button" href="/#products">الرجوع للمتجر</a></section>
+  <section id="inquiryCard" class="inquiry-card" hidden>
+    <p class="eyebrow">استفسار عن السعر</p><h1 id="productName"></h1><p id="productCategory" class="muted"></p>
+    <p class="intro">اكتب بياناتك، وصاحب المتجر هيتواصل معاك عشان يرد على سؤالك ويأكد السعر.</p>
+    <form id="inquiryForm">
+      <label>اسمك<input name="name" required minlength="2" maxlength="80" autocomplete="name" placeholder="الاسم"></label>
+      <label>رقم التليفون<input name="phone" required minlength="7" maxlength="20" inputmode="tel" autocomplete="tel" placeholder="01xxxxxxxxx"></label>
+      <label>سؤالك (اختياري)<textarea name="message" maxlength="500" rows="4" placeholder="مثلاً: هل المنتج متاح بلون تاني؟"></textarea></label>
+      <button id="sendButton" class="gold-button" type="submit">ابعت الاستفسار</button>
+      <p id="formMessage" class="form-message" role="status"></p>
+    </form>
+  </section>
+  <section id="success" class="inquiry-card success" hidden><div class="success-mark">✓</div><h1>استفسارك وصل</h1><p>هنكلمك على رقم التليفون اللي سجلته.</p><p id="inquiryId" class="muted"></p><a class="gold-button" href="/#products">كمّل تسوّق</a></section>
+</main>
+<script src="/price-inquiry.js"></script>
+</body>
+</html>

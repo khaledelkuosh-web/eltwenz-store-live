@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: eltwenz-store
+    runtime: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: SUPABASE_URL
+        value: https://xrdnltlzslejxhppbmxb.supabase.co
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: NODE_ENV
+        value: production
