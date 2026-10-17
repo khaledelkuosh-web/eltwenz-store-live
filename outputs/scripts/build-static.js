@@ -18,3 +18,22 @@ for (const file of frontendFiles) {
   fs.copyFileSync(path.join(root, file), path.join(output, targetName));
 }
 fs.cpSync(path.join(root, 'products'), path.join(output, 'products'), { recursive: true });
+
+function writePrettyRoute(route, sourceFile) {
+  const routeDirectory = path.join(output, route);
+  fs.mkdirSync(routeDirectory, { recursive: true });
+  fs.copyFileSync(path.join(root, sourceFile), path.join(routeDirectory, 'index.html'));
+}
+
+for (const slug of ['electronics', 'clothes', 'shoes', 'home', 'all']) {
+  writePrettyRoute(path.join('category', slug), 'category.html');
+}
+
+const products = JSON.parse(fs.readFileSync(path.join(root, 'data', 'products.json'), 'utf8'));
+for (const product of products) {
+  if (typeof product.id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(product.id)) continue;
+  writePrettyRoute(path.join('product', product.id), 'product.html');
+  if (product.price == null) {
+    writePrettyRoute(path.join('price-inquiry', product.id), 'price-inquiry.html');
+  }
+}
