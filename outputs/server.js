@@ -12,17 +12,24 @@ const CUSTOMERS = path.join(DATA, 'customers.json');
 const SHIPPING_RATES = path.join(DATA, 'shipping-rates.json');
 const TOKEN_FILE = path.join(DATA, 'admin-token.txt');
 const CATALOG = path.join(DATA, 'products.json');
+const IS_NETLIFY = Boolean(process.env.NETLIFY);
 const SUPABASE_URL = String(process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const USE_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 if (Boolean(SUPABASE_URL) !== Boolean(SUPABASE_SERVICE_ROLE_KEY)) {
   throw new Error('لازم تضبط SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY مع بعض.');
 }
+if (IS_NETLIFY && !USE_SUPABASE) {
+  throw new Error('لازم تضبط إعدادات Supabase في Netlify عشان تحفظ بيانات المتجر بأمان.');
+}
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
-fs.mkdirSync(DATA, { recursive: true });
+if (!IS_NETLIFY) fs.mkdirSync(DATA, { recursive: true });
 
 let adminToken = process.env.ADMIN_TOKEN;
+if (!adminToken && IS_NETLIFY) {
+  throw new Error('لازم تضبط ADMIN_TOKEN في إعدادات Netlify قبل النشر.');
+}
 if (!adminToken) {
   try { adminToken = fs.readFileSync(TOKEN_FILE, 'utf8').trim(); }
   catch (_) {
@@ -97,10 +104,11 @@ async function customerSession(req) {
 }
 
 function customerCookie(customerId, req, clear) {
-  if (clear) return 'eltwenzCustomer=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' + (req.socket.encrypted ? '; Secure' : '');
+  const secure = req.socket.encrypted || String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https';
+  if (clear) return 'eltwenzCustomer=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' + (secure ? '; Secure' : '');
   const payload = Buffer.from(JSON.stringify({ id: customerId, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 })).toString('base64url');
   const signature = crypto.createHmac('sha256', adminToken).update(payload).digest('base64url');
-  return 'eltwenzCustomer=' + payload + '.' + signature + '; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000' + (req.socket.encrypted ? '; Secure' : '');
+  return 'eltwenzCustomer=' + payload + '.' + signature + '; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000' + (secure ? '; Secure' : '');
 }
 
 async function remoteRead(collection) {
@@ -232,7 +240,7 @@ function productInput(body, current) {
   return { name, category, description, badge: badge || category, image, price, stock, discount, active: body.active === undefined ? (current ? current.active !== false : true) : Boolean(body.active) };
 }
 
-const server = http.createServer(async (req, res) => {
+async function handleRequest(req, res) {
   const url = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
   if (req.method === 'GET' && url.pathname === '/') return sendFile(res, path.join(ROOT, 'storefront.html'));
   if (req.method === 'GET' && url.pathname === '/admin') return sendFile(res, path.join(ROOT, 'admin.html'));
@@ -527,7 +535,9 @@ const server = http.createServer(async (req, res) => {
     return sendFile(res, path.join(PRODUCTS, name));
   }
   send(res, 404, { error: 'الصفحة المطلوبة مش موجودة.' });
-});
+}
+
+const server = http.createServer(handleRequest);
 
 async function initializeSupabase() {
   const products = await remoteRead('products');
@@ -543,8 +553,15 @@ async function initializeSupabase() {
   console.log('Supabase storage connected; only products and shipping rates were seeded.');
 }
 
+let supabaseInitialization;
+function initializeSupabaseOnce() {
+  if (!USE_SUPABASE) return Promise.resolve();
+  if (!supabaseInitialization) supabaseInitialization = initializeSupabase();
+  return supabaseInitialization;
+}
+
 async function startServer() {
-  if (USE_SUPABASE) await initializeSupabase();
+  await initializeSupabaseOnce();
   server.listen(PORT, HOST, () => {
     console.log('Eltwenz Store شغال على http://' + HOST + ':' + PORT);
     console.log('لوحة متابعة الطلبات: http://' + HOST + ':' + PORT + '/admin');
@@ -552,7 +569,11 @@ async function startServer() {
   });
 }
 
-startServer().catch(error => {
-  console.error('تعذر الاتصال بـ Supabase. راجع إعدادات SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY وجدول store_records.', error.message);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  startServer().catch(error => {
+    console.error('تعذر الاتصال بـ Supabase. راجع إعدادات SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY وجدول store_records.', error.message);
+    process.exitCode = 1;
+  });
+} else {
+  module.exports = { server, handleRequest, initializeSupabaseOnce };
+}

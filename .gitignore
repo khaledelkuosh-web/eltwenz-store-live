@@ -2,3 +2,4 @@
 !/.gitignore
 !/outputs/
 !/render.yaml
+!/netlify.toml

@@ -3,6 +3,7 @@
 !.env.example
 *.log
 *.zip
+public/
 tools/
 data/*
 !data/products.json

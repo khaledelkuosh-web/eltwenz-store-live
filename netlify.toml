@@ -1,0 +1,40 @@
+[build]
+base = "outputs"
+command = "node scripts/build-static.js"
+publish = "public"
+functions = "netlify/functions"
+
+[functions]
+node_bundler = "esbuild"
+included_files = ["data/products.json", "data/shipping-rates.json"]
+
+[[redirects]]
+from = "/api/*"
+to = "/.netlify/functions/api/api/:splat"
+status = 200
+force = true
+
+[[redirects]]
+from = "/admin"
+to = "/admin.html"
+status = 200
+
+[[redirects]]
+from = "/account"
+to = "/account.html"
+status = 200
+
+[[redirects]]
+from = "/category/*"
+to = "/category.html"
+status = 200
+
+[[redirects]]
+from = "/product/*"
+to = "/product.html"
+status = 200
+
+[[redirects]]
+from = "/price-inquiry/*"
+to = "/price-inquiry.html"
+status = 200
