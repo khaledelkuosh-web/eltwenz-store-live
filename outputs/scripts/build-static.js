@@ -29,6 +29,9 @@ for (const slug of ['electronics', 'clothes', 'shoes', 'home', 'all']) {
   writePrettyRoute(path.join('category', slug), 'category.html');
 }
 
+writePrettyRoute('admin', 'admin.html');
+writePrettyRoute('account', 'account.html');
+
 const products = JSON.parse(fs.readFileSync(path.join(root, 'data', 'products.json'), 'utf8'));
 for (const product of products) {
   if (typeof product.id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(product.id)) continue;
