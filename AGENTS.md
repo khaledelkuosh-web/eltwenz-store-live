@@ -8,7 +8,7 @@
 - `outputs/data/products.json` and `outputs/data/shipping-rates.json` are tracked seed data. Customer, order, inquiry, and token data are local runtime data and must remain ignored. Never print, copy, commit, or expose personal data or secrets while inspecting these files.
 - Frontend source files and product images live under `outputs/`. `outputs/scripts/build-static.js` generates `outputs/public/`; edit the source files, never generated copies.
 - `STORE_SCHEMA=legacy` is the default. With Supabase credentials it uses the existing `public.store_records` JSONB table; without them it uses local JSON files. `STORE_SCHEMA=relational` is an opt-in adapter that requires the additive migration in `outputs/supabase/migrations/` to be applied first. The Phase 1 export validator is dry-run only and does not import or modify data.
-- Render and Netlify manifests both exist. Keep their schema setting at `legacy` until a separately reviewed data migration and cutover are completed. Neither manifest authorizes deployment or a production change.
+- Render and Netlify manifests both exist. Keep their schema setting at `legacy` until a separately reviewed data migration and cutover are completed. Keep deployment secrets and provider URLs in the hosting provider's environment settings rather than hardcoding values in repository manifests; use `sync: false` in `render.yaml` when a value must be entered manually in Render. Neither manifest authorizes deployment or a production change.
 
 ## Conventions
 

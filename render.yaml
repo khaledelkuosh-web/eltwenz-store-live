@@ -17,7 +17,7 @@ services:
       - key: STORE_SCHEMA
         value: legacy
       - key: SUPABASE_URL
-        value: https://xrdnltlzslejxhppbmxb.supabase.co
+        sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: NODE_ENV
