@@ -5,6 +5,7 @@
 *.zip
 public/
 tools/
+products/upload-*
 data/*
 !data/products.json
 !data/shipping-rates.json

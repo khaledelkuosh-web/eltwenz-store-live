@@ -4,6 +4,7 @@
   const detail = document.getElementById('productDetail');
   const notFound = document.getElementById('notFound');
   const addText = (node, text) => { node.textContent = text; };
+  const imageSource = source => /^onedrive:[A-Za-z0-9!_-]+$/.test(source || '') ? '/api/product-images/' + encodeURIComponent(source.slice('onedrive:'.length)) : /^https:\/\//i.test(source || '') ? source : '/products/' + encodeURIComponent(source || '');
   function addRecommendations(current) {
     const section = document.getElementById('recommendations');
     const grid = document.getElementById('recommendationGrid');
@@ -21,7 +22,7 @@
         link.setAttribute('aria-label', 'تفاصيل ' + item.name);
         if (item.image) {
           const image = document.createElement('img');
-          image.src = /^https:\/\//i.test(item.image) ? item.image : '/products/' + encodeURIComponent(item.image);
+          image.src = imageSource(item.image);
           image.alt = item.name;
           link.appendChild(image);
         } else link.appendChild(document.createTextNode('📦'));
@@ -74,7 +75,7 @@
     addText(document.getElementById('productBadge'), product.badge || product.category);
     const image = document.getElementById('productImage');
     image.alt = product.name;
-    if (product.image) image.src = /^https:\/\//i.test(product.image) ? product.image : '/products/' + encodeURIComponent(product.image);
+    if (product.image) image.src = imageSource(product.image);
     else image.hidden = true;
     const gallery = document.getElementById('productGallery');
     const images = Array.from(new Set([product.image, ...(Array.isArray(product.images) ? product.images : [])].filter(Boolean)));
@@ -86,7 +87,7 @@
         thumbnail.setAttribute('aria-label', 'عرض الصورة ' + (index + 1));
         thumbnail.setAttribute('aria-current', index === 0 ? 'true' : 'false');
         const preview = document.createElement('img');
-        preview.src = /^https:\/\//i.test(source) ? source : '/products/' + encodeURIComponent(source);
+        preview.src = imageSource(source);
         preview.alt = product.name + ' - صورة ' + (index + 1);
         thumbnail.appendChild(preview);
         thumbnail.addEventListener('click', () => {

@@ -1,3 +1,5 @@
+-- Legacy JSONB storage bootstrap retained for rollback and data export only.
+-- New installations should apply migrations/001_relational_schema.sql instead.
 create table if not exists public.store_records (
   collection text not null,
   id text not null,

@@ -89,7 +89,7 @@
       photo.className = 'cart-product-photo';
       if (entry.image) {
         const image = document.createElement('img');
-        image.src = entry.image;
+        image.src = /^onedrive:[A-Za-z0-9!_-]+$/.test(entry.image) ? '/api/product-images/' + encodeURIComponent(entry.image.slice('onedrive:'.length)) : /^https:\/\//i.test(entry.image) ? entry.image : '/products/' + encodeURIComponent(entry.image);
         image.alt = entry.name;
         photo.appendChild(image);
       } else photo.textContent = '📦';

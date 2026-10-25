@@ -12,9 +12,15 @@ services:
         value: 0.0.0.0
       - key: ADMIN_TOKEN
         generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: STORE_SCHEMA
+        value: legacy
       - key: SUPABASE_URL
         value: https://xrdnltlzslejxhppbmxb.supabase.co
       - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ONEDRIVE_CLIENT_ID
         sync: false
       - key: NODE_ENV
         value: production
