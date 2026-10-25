@@ -3,8 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { createRelationalStore } = require('./lib/relational-store');
-const { createOneDriveStorage } = require('./lib/onedrive-storage');
-const { sealSecret, openSecret } = require('./lib/secret-box');
+const { createSupabaseImageStorage } = require('./lib/supabase-image-storage');
 
 const ROOT = __dirname;
 const PRODUCTS = path.join(ROOT, 'products');
@@ -16,15 +15,14 @@ const CUSTOMERS = path.join(DATA, 'customers.json');
 const SHIPPING_RATES = path.join(DATA, 'shipping-rates.json');
 const TOKEN_FILE = path.join(DATA, 'admin-token.txt');
 const CATALOG = path.join(DATA, 'products.json');
-const ONEDRIVE_TOKEN_FILE = path.join(DATA, 'onedrive-token.json');
 const MAX_PRODUCT_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_PRODUCT_REQUEST_BYTES = 8 * 1024 * 1024;
 const IS_NETLIFY = Boolean(process.env.NETLIFY);
 const SUPABASE_URL = String(process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const USE_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+const supabaseImageStorage = createSupabaseImageStorage({ url: SUPABASE_URL, serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY });
 const STORE_SCHEMA = String(process.env.STORE_SCHEMA || 'legacy').trim().toLowerCase();
-const ONEDRIVE_CLIENT_ID = String(process.env.ONEDRIVE_CLIENT_ID || '').trim();
 const HOSTED_RUNTIME = IS_NETLIFY || Boolean(process.env.RENDER) || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
 if (!['legacy', 'relational'].includes(STORE_SCHEMA)) throw new Error('STORE_SCHEMA لازم يكون legacy أو relational.');
 if (Boolean(SUPABASE_URL) !== Boolean(SUPABASE_SERVICE_ROLE_KEY)) {
@@ -137,7 +135,7 @@ function parseProductImage(dataUrl) {
 
 function storeProductImage(image) {
   if (IS_NETLIFY || HOSTED_RUNTIME && !process.env.ELTWENZ_IMAGE_UPLOAD_DIR) {
-    throw Object.assign(new Error('ارفع الصور على OneDrive بعد ضبط ONEDRIVE_CLIENT_ID وربط الحساب من لوحة الإدارة.'), { status: 503 });
+    throw Object.assign(new Error('رفع الصور على الاستضافة محتاج إعداد Supabase Storage.'), { status: 503 });
   }
   fs.mkdirSync(PRODUCT_UPLOADS, { recursive: true });
   const name = 'upload-' + crypto.randomUUID() + image.extension;
@@ -148,8 +146,12 @@ function storeProductImage(image) {
 async function persistProduct(product, imageData) {
   const image = parseProductImage(imageData);
   let storedName = '';
+  let uploadedImageUrl = '';
   if (image) {
-    if (ONEDRIVE_CLIENT_ID) product.image = await oneDriveStorage.uploadImage(image);
+    if (USE_SUPABASE) {
+      uploadedImageUrl = await supabaseImageStorage.uploadImage(image);
+      product.image = uploadedImageUrl;
+    }
     else {
       storedName = storeProductImage(image);
       product.image = storedName;
@@ -160,6 +162,7 @@ async function persistProduct(product, imageData) {
     if (storedName) {
       try { fs.unlinkSync(path.join(PRODUCT_UPLOADS, storedName)); } catch (_) {}
     }
+    if (uploadedImageUrl) await supabaseImageStorage.deleteImage(uploadedImageUrl);
     throw error;
   }
   return product;
@@ -291,56 +294,6 @@ async function remoteWrite(collection, values) {
   });
   if (!response.ok) throw new Error(`Supabase write failed (${response.status}).`);
 }
-
-function oneDriveEncryptionKey() {
-  return crypto.scryptSync(sessionSecret, 'eltwenz-store:onedrive-refresh-token:v1', 32);
-}
-
-function encryptOneDriveRefreshToken(token) {
-  return token ? sealSecret(String(token), oneDriveEncryptionKey()) : '';
-}
-
-function decryptOneDriveRefreshToken(value) {
-  if (!value) return '';
-  try { return openSecret(value, oneDriveEncryptionKey()); }
-  catch (_) {
-    throw Object.assign(new Error('تعذر قراءة اتصال OneDrive المشفر. اربط الحساب مرة تانية.'), { status: 409 });
-  }
-}
-
-async function readOneDriveRefreshToken() {
-  if (USE_SUPABASE) {
-    try {
-      const record = (await remoteRead('integration_secrets')).find(item => item.id === 'onedrive-refresh-token');
-      return decryptOneDriveRefreshToken(record?.encryptedRefreshToken || '');
-    } catch (error) {
-      if (error.status) throw error;
-      throw Object.assign(new Error('تعذر الوصول إلى تخزين اتصال OneDrive في Supabase.'), { status: 503 });
-    }
-  }
-  if (HOSTED_RUNTIME) throw Object.assign(new Error('حفظ اتصال OneDrive محتاج إعداد Supabase الدائم على الاستضافة.'), { status: 503 });
-  if (!fs.existsSync(ONEDRIVE_TOKEN_FILE)) return '';
-  const record = JSON.parse(fs.readFileSync(ONEDRIVE_TOKEN_FILE, 'utf8'));
-  return decryptOneDriveRefreshToken(record.encryptedRefreshToken || '');
-}
-
-async function writeOneDriveRefreshToken(token) {
-  const record = { id: 'onedrive-refresh-token', encryptedRefreshToken: encryptOneDriveRefreshToken(token) };
-  if (USE_SUPABASE) {
-    try { return await remoteWrite('integration_secrets', record); }
-    catch (_) { throw Object.assign(new Error('تعذر حفظ اتصال OneDrive المشفر في Supabase.'), { status: 503 }); }
-  }
-  if (HOSTED_RUNTIME) throw Object.assign(new Error('حفظ اتصال OneDrive محتاج إعداد Supabase الدائم على الاستضافة.'), { status: 503 });
-  const temporary = ONEDRIVE_TOKEN_FILE + '.tmp';
-  fs.writeFileSync(temporary, JSON.stringify(record), { mode: 0o600 });
-  fs.renameSync(temporary, ONEDRIVE_TOKEN_FILE);
-}
-
-const oneDriveStorage = createOneDriveStorage({
-  clientId: ONEDRIVE_CLIENT_ID,
-  getRefreshToken: readOneDriveRefreshToken,
-  setRefreshToken: writeOneDriveRefreshToken
-});
 
 async function readCustomers() {
   if (relationalStore) return relationalStore.readCustomers();
@@ -475,7 +428,7 @@ function productInput(body, current) {
   if (!Number.isFinite(price) && price !== null || price !== null && (price < 0 || price > 100000000)) throw Object.assign(new Error('السعر لازم يكون رقم صحيح أو فاضي لو لسه مش متحدد.'), { status: 400 });
   if (!Number.isInteger(stock) && stock !== null || stock !== null && (stock < 0 || stock > 10000000)) throw Object.assign(new Error('الكمية لازم تكون رقم صحيح أو فاضية لو مش هتتابع المخزون.'), { status: 400 });
   if (!Number.isFinite(discount) || discount < 0 || discount > 100) throw Object.assign(new Error('الخصم لازم يكون نسبة من ٠ لـ١٠٠٪.'), { status: 400 });
-  if (image && !/^https:\/\//i.test(image) && !/^onedrive:[A-Za-z0-9!_-]{1,256}$/.test(image) && !/^[A-Za-z0-9_.-]+$/.test(image)) throw Object.assign(new Error('رابط الصورة لازم يبدأ بـ https أو يكون اسم ملف داخل مجلد الصور أو معرّف OneDrive صالح.'), { status: 400 });
+  if (image && !/^https:\/\//i.test(image) && !/^[A-Za-z0-9_.-]+$/.test(image)) throw Object.assign(new Error('رابط الصورة لازم يبدأ بـ https أو يكون اسم ملف داخل مجلد الصور.'), { status: 400 });
   return { name, category, description, badge: badge || category, image, price, stock, discount, active: body.active === undefined ? (current ? current.active !== false : true) : Boolean(body.active) };
 }
 
@@ -524,29 +477,12 @@ async function handleRequest(req, res) {
     if (claims?.role === 'admin' && !validCsrf(req, claims)) return send(res, 403, { error: 'تعذر التحقق من الطلب.' });
     return send(res, 200, { ok: true }, undefined, { 'Set-Cookie': signedCookie('eltwenzAdmin', {}, req, 0, 'Strict', true) });
   }
-  if (req.method === 'GET' && url.pathname === '/api/admin/onedrive/status') {
-    if (!authorized(req)) return send(res, 401, { error: 'رمز الدخول غير صحيح.' });
-    if (!ONEDRIVE_CLIENT_ID) return send(res, 200, { configured: false, connected: false });
-    try { return send(res, 200, await oneDriveStorage.status()); }
-    catch (err) { return send(res, err.status || 503, { error: err.status ? err.message : 'تعذر قراءة إعداد اتصال OneDrive.' }); }
-  }
-  if (req.method === 'POST' && url.pathname === '/api/admin/onedrive/connect') {
-    if (!authorized(req)) return send(res, 401, { error: 'رمز الدخول غير صحيح.' });
-    try { return send(res, 200, await oneDriveStorage.startDeviceFlow()); }
-    catch (err) { return send(res, err.status || 502, { error: err.status ? err.message : 'تعذر الاتصال بـMicrosoft لبدء الربط.' }); }
-  }
-  if (req.method === 'POST' && url.pathname === '/api/admin/onedrive/poll') {
+  if (req.method === 'GET' && url.pathname === '/api/admin/image-storage/status') {
     if (!authorized(req)) return send(res, 401, { error: 'رمز الدخول غير صحيح.' });
     try {
-      const body = await readJson(req, 2048);
-      if (typeof body.sessionId !== 'string' || body.sessionId.length > 80) return send(res, 400, { error: 'جلسة تسجيل الدخول غير صحيحة.' });
-      return send(res, 200, await oneDriveStorage.pollDeviceFlow(body.sessionId));
-    } catch (err) { return send(res, err.status || 502, { error: err.status ? err.message : 'تعذر التحقق من تسجيل الدخول لدى Microsoft.' }); }
-  }
-  if (req.method === 'POST' && url.pathname === '/api/admin/onedrive/disconnect') {
-    if (!authorized(req)) return send(res, 401, { error: 'رمز الدخول غير صحيح.' });
-    try { return send(res, 200, await oneDriveStorage.disconnect()); }
-    catch (err) { return send(res, err.status || 503, { error: err.status ? err.message : 'تعذر فصل اتصال OneDrive.' }); }
+      const storage = await supabaseImageStorage.status();
+      return send(res, 200, { ...storage, mode: USE_SUPABASE ? 'supabase' : HOSTED_RUNTIME ? 'hosted' : 'local' });
+    } catch (err) { return send(res, err.status || 503, { error: err.message || 'تعذر التحقق من إعداد Supabase Storage.' }); }
   }
   if (req.method === 'POST' && url.pathname === '/api/customer/register') {
     if (!sameOrigin(req)) return send(res, 403, { error: 'تعذر التحقق من الطلب.' });
@@ -824,21 +760,6 @@ async function handleRequest(req, res) {
     if (!name || path.basename(name) !== name) return send(res, 400, { error: 'اسم الملف غير صحيح.' });
     const uploadedImage = /^upload-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.(?:jpg|png|webp)$/i.test(name);
     return sendFile(res, path.join(uploadedImage ? PRODUCT_UPLOADS : PRODUCTS, name));
-  }
-  if (req.method === 'GET' && url.pathname.startsWith('/api/product-images/')) {
-    let itemId;
-    try { itemId = decodeURIComponent(url.pathname.slice('/api/product-images/'.length)); }
-    catch (_) { return send(res, 400, { error: 'معرّف الصورة غير صحيح.' }); }
-    try {
-      const imageReference = `onedrive:${itemId}`;
-      const isCatalogImage = (await readProducts()).some(product => product.image === imageReference || Array.isArray(product.images) && product.images.includes(imageReference));
-      if (!isCatalogImage) return send(res, 404, { error: 'صورة المنتج مش موجودة.' });
-      const image = await oneDriveStorage.readImage(itemId);
-      const validated = parseProductImage(`data:${image.contentType};base64,${image.buffer.toString('base64')}`);
-      const contentType = validated.extension === '.jpg' ? 'image/jpeg' : validated.extension === '.png' ? 'image/png' : 'image/webp';
-      if (contentType !== image.contentType) return send(res, 415, { error: 'محتوى صورة OneDrive لا يطابق نوعها.' });
-      return send(res, 200, image.buffer, contentType, { 'Cache-Control': 'public, max-age=300, stale-if-error=3600' });
-    } catch (err) { return send(res, err.status || 502, { error: err.status ? err.message : 'تعذر تحميل صورة المنتج من OneDrive.' }); }
   }
   send(res, 404, { error: 'الصفحة المطلوبة مش موجودة.' });
 }

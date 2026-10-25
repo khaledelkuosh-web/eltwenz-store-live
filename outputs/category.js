@@ -15,7 +15,7 @@
   const crumb = document.getElementById('categoryCrumb');
   const intro = document.getElementById('categoryIntro');
   const element = (tag, text, className) => { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; if (className) node.className = className; return node; };
-  const imageSource = image => /^onedrive:[A-Za-z0-9!_-]+$/.test(image || '') ? '/api/product-images/' + encodeURIComponent(image.slice('onedrive:'.length)) : /^https:\/\//i.test(image || '') ? image : '/products/' + encodeURIComponent(image || '');
+  const imageSource = image => /^https:\/\//i.test(image || '') ? image : '/products/' + encodeURIComponent(image || '');
   if (!category) {
     title.textContent = 'القسم مش موجود'; crumb.textContent = 'القسم مش موجود';
     intro.textContent = 'ارجع للمتجر واختار قسم من الأقسام المتاحة.';

@@ -18,8 +18,8 @@ test('parses the inline JavaScript in the admin page', () => {
 
   assert.match(html, /<input name="imageFile" type="file"/);
   assert.match(html, /id="productImagePreview"/);
-  assert.match(html, /id="connectOneDrive"/);
-  assert.match(html, /api\/admin\/onedrive\/connect/);
+  assert.match(html, /id="imageStoragePanel"/);
+  assert.match(html, /api\/admin\/image-storage\/status/);
   assert.doesNotMatch(html, /name="image" maxlength=/);
   assert.ok(scripts.length > 0, 'expected at least one inline script');
   scripts.forEach((source, index) => new vm.Script(source, { filename: `admin.inline.${index}.js` }));

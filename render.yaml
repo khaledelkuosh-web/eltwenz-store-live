@@ -20,7 +20,5 @@ services:
         value: https://xrdnltlzslejxhppbmxb.supabase.co
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      - key: ONEDRIVE_CLIENT_ID
-        sync: false
       - key: NODE_ENV
         value: production

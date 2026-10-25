@@ -13,7 +13,6 @@
 
   function imageSource(image) {
     if (!image) return '';
-    if (/^onedrive:[A-Za-z0-9!_-]+$/.test(image)) return '/api/product-images/' + encodeURIComponent(image.slice('onedrive:'.length));
     return /^https:\/\//i.test(image) ? image : '/products/' + encodeURIComponent(image);
   }
 

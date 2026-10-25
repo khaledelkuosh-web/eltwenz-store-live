@@ -4,7 +4,7 @@
   const detail = document.getElementById('productDetail');
   const notFound = document.getElementById('notFound');
   const addText = (node, text) => { node.textContent = text; };
-  const imageSource = source => /^onedrive:[A-Za-z0-9!_-]+$/.test(source || '') ? '/api/product-images/' + encodeURIComponent(source.slice('onedrive:'.length)) : /^https:\/\//i.test(source || '') ? source : '/products/' + encodeURIComponent(source || '');
+  const imageSource = source => /^https:\/\//i.test(source || '') ? source : '/products/' + encodeURIComponent(source || '');
   function addRecommendations(current) {
     const section = document.getElementById('recommendations');
     const grid = document.getElementById('recommendationGrid');

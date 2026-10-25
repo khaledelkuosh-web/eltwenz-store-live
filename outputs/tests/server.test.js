@@ -20,7 +20,6 @@ delete process.env.NETLIFY;
 delete process.env.RENDER;
 delete process.env.AWS_LAMBDA_FUNCTION_NAME;
 delete process.env.ELTWENZ_IMAGE_UPLOAD_DIR;
-delete process.env.ONEDRIVE_CLIENT_ID;
 
 fs.writeFileSync(path.join(dataDir, 'products.json'), JSON.stringify([{
   id: 'product-1', name: 'Test Watch', category: 'Electronics', description: '', badge: 'Test',
@@ -71,13 +70,11 @@ test('prices orders on the server and uses an HttpOnly admin session with CSRF p
   assert.match(cookie, /SameSite=Strict/);
   const adminCookie = cookie.split(';')[0];
 
-  const onedriveStatusDenied = await jsonRequest('/api/admin/onedrive/status');
-  assert.equal(onedriveStatusDenied.response.status, 401);
-  const onedriveStatus = await jsonRequest('/api/admin/onedrive/status', { headers: { Cookie: adminCookie } });
-  assert.equal(onedriveStatus.response.status, 200);
-  assert.deepEqual(onedriveStatus.data, { configured: false, connected: false });
-  const onedriveConnectDenied = await jsonRequest('/api/admin/onedrive/connect', { method: 'POST', headers: { Origin: baseUrl, 'Content-Type': 'application/json' }, body: '{}' });
-  assert.equal(onedriveConnectDenied.response.status, 401);
+  const imageStorageStatusDenied = await jsonRequest('/api/admin/image-storage/status');
+  assert.equal(imageStorageStatusDenied.response.status, 401);
+  const imageStorageStatus = await jsonRequest('/api/admin/image-storage/status', { headers: { Cookie: adminCookie } });
+  assert.equal(imageStorageStatus.response.status, 200);
+  assert.deepEqual(imageStorageStatus.data, { configured: false, bucketConfigured: false, mode: 'local' });
 
   const orders = await jsonRequest('/api/orders', { headers: { Cookie: adminCookie } });
   assert.equal(orders.response.status, 200);
@@ -138,18 +135,16 @@ test('prices orders on the server and uses an HttpOnly admin session with CSRF p
   assert.equal(rejectedImage.response.status, 400);
   assert.match(rejectedImage.data.error, /مش صورة/);
 
-  const onedriveProduct = await jsonRequest('/api/admin/products', {
+  const supabaseProduct = await jsonRequest('/api/admin/products', {
     method: 'POST', headers: {
       Cookie: adminCookie, Origin: baseUrl, 'X-CSRF-Token': login.data.csrfToken, 'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ name: 'OneDrive image reference test', category: 'Test', image: 'onedrive:item!test_123' })
+    body: JSON.stringify({ name: 'Cloud image reference test', category: 'Test', image: 'https://project-ref.supabase.co/storage/v1/object/public/product-images/upload-123e4567-e89b-42d3-a456-426614174000.jpg' })
   });
-  assert.equal(onedriveProduct.response.status, 201);
-  assert.equal(onedriveProduct.data.product.image, 'onedrive:item!test_123');
+  assert.equal(supabaseProduct.response.status, 201);
+  assert.match(supabaseProduct.data.product.image, /\/storage\/v1\/object\/public\/product-images\//);
   const customerCatalog = await jsonRequest('/api/products');
-  assert.equal(customerCatalog.data.products.find(product => product.id === onedriveProduct.data.product.id).image, 'onedrive:item!test_123');
-  const unknownOneDriveImage = await fetch(baseUrl + '/api/product-images/not-in-catalog');
-  assert.equal(unknownOneDriveImage.status, 404);
+  assert.equal(customerCatalog.data.products.find(product => product.id === supabaseProduct.data.product.id).image, supabaseProduct.data.product.image);
 
   const adminLogout = await jsonRequest('/api/admin/logout', {
     method: 'POST', headers: { Cookie: adminCookie, Origin: baseUrl, 'X-CSRF-Token': login.data.csrfToken }
